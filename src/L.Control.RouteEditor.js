@@ -22,6 +22,7 @@ L.Control.RouteEditor = L.Control.extend({
     onAdd: function (map) {
         L.DomEvent.on(this._map, 'click', e => this._addLatLng(e.latlng));
         L.DomEvent.on(this._map, 'zoomend', this._updateMarkers, this);
+        L.DomEvent.on(this._map, 'mousemove', this._updateHoverMarker, this);
 
         this._container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-gpx-editor');
 
@@ -42,7 +43,7 @@ L.Control.RouteEditor = L.Control.extend({
             this._clearButton = L.DomUtil.create('a', 'leaflet-control-gpx-editor-clear', this._container);
             this._clearButton.innerHTML = this.options.clear;
 
-            L.DomEvent.on(this._clearButton, 'click', e => this._clear());
+            L.DomEvent.on(this._clearButton, 'click', e => this.clear());
             L.DomEvent.on(this._clearButton, 'click', L.DomEvent.stopPropagation);
         }
 
@@ -51,6 +52,7 @@ L.Control.RouteEditor = L.Control.extend({
 
     onRemove: function (map) {
         L.DomEvent.off(this._map, 'zoomend', this._updateMarkers, this);
+        L.DomEvent.off(this._map, 'mousemove', this._updateHoverMarker, this);
     },
 
     _loadRouteFromFile: function (file) {
@@ -137,6 +139,71 @@ L.Control.RouteEditor = L.Control.extend({
         this._updateMarkers();
     },
 
+    _updateHoverMarker: function (e) {
+        if (this._polyline) {
+            let point = this._polyline.closestLayerPoint(e.layerPoint);
+            if (point.distance < 4) {
+                if (this._tmpMarker) {
+                    this._tmpMarker.setLatLng(e.latlng);
+                } else {
+                    this._tmpMarker = this._createMarker(e.latlng);
+                    this._tmpMarker.setZIndexOffset(-1);
+
+                    L.DomEvent.on(this._tmpMarker, 'mousedown', this._insertMarker, this);
+                }
+            } else if (this._tmpMarker) {
+                this._tmpMarker.remove();
+                this._tmpMarker = null;
+            }
+        } else if (this._tmpMarker) {
+            this._tmpMarker.remove();
+            this._tmpMarker = null;
+        }
+    },
+
+    _insertMarker: function (e) {
+        if (this._tmpMarker) {
+            let latlngIndex = -1;
+            let minDist = 0;
+            for (let i = 0; i < this._data.length - 1; i++) {
+                let dist = L.LineUtil.pointToSegmentDistance(
+                    e.layerPoint,
+                    this._map.latLngToLayerPoint(this._data[i]),
+                    this._map.latLngToLayerPoint(this._data[i + 1])
+                );
+                if (latlngIndex == -1 || dist < minDist) {
+                    latlngIndex = i + 1;
+                    minDist = dist;
+                }
+            }
+
+            let markerIndex = -1;
+            for (let i = 0; i < this._markers.length; i++) {
+                if (this._markers[i]._latlngIndex >= latlngIndex) {
+                    if (markerIndex == -1) {
+                        markerIndex = i;
+                    }
+                    this._markers[i]._latlngIndex++;
+                    this._markers[i]._markerIndex++;
+                }
+            }
+
+            let latlng = e.latlng;
+            let marker = this._tmpMarker;
+            latlng._anchor = true;
+            latlng._marker = marker;
+            this._data.splice(latlngIndex, 0, latlng);
+
+            marker._latlngIndex = latlngIndex;
+            marker._markerIndex = markerIndex;
+            marker.setZIndexOffset(0);
+
+            this._markers.splice(markerIndex, 0, marker);
+            L.DomEvent.off(marker, 'mousedown', this._insertMarker, this);
+            this._tmpMarker = null;
+        }
+    },
+
     _updateMarkers: function () {
         let bounds = this._map.getBounds();
         let threshold = Math.abs(bounds.getNorthWest().lat - bounds.getSouthEast().lat) / 20;
@@ -203,23 +270,27 @@ L.Control.RouteEditor = L.Control.extend({
         });
         marker.addTo(this._map);
 
-        L.DomEvent.on(marker, 'dragend', e => {
-            if (marker._markerIndex > 0 && marker._markerIndex < this._markers.length - 1) {
-                let previousMarker = this._markers[marker._markerIndex - 1];
-                let nextMarker = this._markers[marker._markerIndex + 1];
-                this._updateRouteBetweenMarkers([previousMarker, marker, nextMarker]);
-            } else if (marker._markerIndex > 0) {
-                let previousMarker = this._markers[marker._markerIndex - 1];
-                this._updateRouteBetweenMarkers([previousMarker, marker]);
-            } else if (marker._markerIndex < this._markers.length - 1) {
-                let nextMarker = this._markers[marker._markerIndex + 1];
-                this._updateRouteBetweenMarkers([marker, nextMarker]);
-            }
-        });
+        L.DomEvent.on(marker, 'mouseup', this._onMarkerMoved, this);
+        L.DomEvent.on(marker, 'click', L.DomEvent.stopPropagation);
 
         latlng._marker = marker;
 
         return marker;
+    },
+
+    _onMarkerMoved: function (e) {
+        let marker = e.target;
+        if (marker._markerIndex > 0 && marker._markerIndex < this._markers.length - 1) {
+            let previousMarker = this._markers[marker._markerIndex - 1];
+            let nextMarker = this._markers[marker._markerIndex + 1];
+            this._updateRouteBetweenMarkers([previousMarker, marker, nextMarker]);
+        } else if (marker._markerIndex > 0) {
+            let previousMarker = this._markers[marker._markerIndex - 1];
+            this._updateRouteBetweenMarkers([previousMarker, marker]);
+        } else if (marker._markerIndex < this._markers.length - 1) {
+            let nextMarker = this._markers[marker._markerIndex + 1];
+            this._updateRouteBetweenMarkers([marker, nextMarker]);
+        }
     },
 
     _updateRouteBetweenMarkers: function (markers) {
@@ -257,7 +328,7 @@ L.Control.RouteEditor = L.Control.extend({
         this._updateData();
     },
 
-    _clear: function () {
+    clear: function () {
         this._data = [];
 
         if (this._polyline) {
