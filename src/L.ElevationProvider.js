@@ -7,8 +7,8 @@ L.ElevationProvider = L.Class.extend({
         L.setOptions(this, options);
     },
 
-    setElevation: function (latlngs) {
-
+    setElevation: function (latlngs, callback) {
+        callback();
     },
 });
 

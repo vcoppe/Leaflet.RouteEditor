@@ -3,14 +3,15 @@ L.Control.RouteEditor = L.Control.extend({
         load: 'load',
         clear: 'clear',
         polylineOptions: {
-
+            weight: 5,
         },
         anchorIconOptions: {
             iconUrl: 'img/marker.svg',
-            iconSize: [10, 10],
+            iconSize: [12, 12],
         },
         routeProvider: L.routeProvider(),
         elevationProvider: L.elevationProvider(),
+        onUpdate: function () {},
     },
 
     initialize: function (options) {
@@ -91,11 +92,11 @@ L.Control.RouteEditor = L.Control.extend({
     _readGpx: function (data) {
         const trkptRegex = /<trkpt\s+lat="(?<lat>-?\d+\.\d+)"\s+lon="(?<lng>-?\d+\.\d+)">[\s\S]*?(<ele>(?<alt>-?\d+\.?\d*)<\/ele>)?[\s\S]*?<\/trkpt>/g;
         let matches = [...data.matchAll(trkptRegex)];
-        this._data = matches.map(match => L.latLng(Number(match.groups.lat), Number(match.groups.lng), Number(match.groups.alt)));
-        if (this._data.length > 0) {
-            this._data[0]._anchor = true;
-            this._data[this._data.length - 1]._anchor = true;
-        }
+        this._data = matches.map(match => {
+            let latlng = L.latLng(Number(match.groups.lat), Number(match.groups.lng), Number(match.groups.alt));
+            latlng._anchor = true;
+            return latlng;
+        });
         this._updateData();
         this._map.fitBounds(this._polyline.getBounds());
     },
@@ -137,17 +138,21 @@ L.Control.RouteEditor = L.Control.extend({
         }
 
         this._updateMarkers();
+
+        if (this.options.onUpdate) {
+            this.options.onUpdate(this._data);
+        }
     },
 
     _updateHoverMarker: function (e) {
         if (this._polyline) {
             let point = this._polyline.closestLayerPoint(e.layerPoint);
-            if (point.distance < 4) {
+            if (point.distance < 3) {
                 if (this._tmpMarker) {
                     this._tmpMarker.setLatLng(e.latlng);
                 } else {
                     this._tmpMarker = this._createMarker(e.latlng);
-                    this._tmpMarker.setZIndexOffset(-1);
+                    this._tmpMarker.setZIndexOffset(-1000);
 
                     L.DomEvent.on(this._tmpMarker, 'mousedown', this._insertMarker, this);
                 }
@@ -190,7 +195,6 @@ L.Control.RouteEditor = L.Control.extend({
 
             let latlng = e.latlng;
             let marker = this._tmpMarker;
-            latlng._anchor = true;
             latlng._marker = marker;
             this._data.splice(latlngIndex, 0, latlng);
 
@@ -215,23 +219,21 @@ L.Control.RouteEditor = L.Control.extend({
         });
 
         let simplified = [];
-        if (this._data.length == 1) {
-            simplified.push(this._data[0]);
-        } else {
-            let lastAnchor = -1;
-            for (let index = 0; index < this._data.length; index++) {
-                if (this._data[index]._anchor) {
-                    if (lastAnchor >= 0) {
-                        let points = data.slice(lastAnchor, index + 1);
-                        simplified.push(...L.LineUtil.simplify(points, threshold));
-                        simplified.pop();
-                    }
+        let lastAnchor = -1;
+        for (let index = 0; index < this._data.length; index++) {
+            if (this._data[index]._anchor) {
+                if (lastAnchor == -1) {
                     lastAnchor = index;
                 }
+            } else if (lastAnchor != -1) {
+                let points = data.slice(lastAnchor, index);
+                simplified.push(...L.LineUtil.simplify(points, threshold));
+                lastAnchor = -1;
             }
-            if (lastAnchor >= 0) {
-                simplified.push(data[lastAnchor]);
-            }
+        }
+        if (lastAnchor != - 1) {
+            let points = data.slice(lastAnchor);
+            simplified.push(...L.LineUtil.simplify(points, threshold));
         }
 
         if (this._markers) {
@@ -296,36 +298,37 @@ L.Control.RouteEditor = L.Control.extend({
     _updateRouteBetweenMarkers: function (markers) {
         let waypoints = markers.map(marker => marker.getLatLng());
 
-        let route = this.options.routeProvider.getRoute(waypoints);
-        this.options.elevationProvider.setElevation(route);
-
-        let routeIndices = [];
-        routeIndices.push(0);
-        if (markers.length == 3) {
-            let minIndex = -1;
-            let minDist = 0;
-            for (let index = 0; index < route.length; index++) {
-                let dist = markers[1].getLatLng().distanceTo(route[index]);
-                if (minIndex == -1 || dist < minDist) {
-                    minIndex = index;
-                    minDist = dist;
+        this.options.routeProvider.getRoute(waypoints, route => {
+            this.options.elevationProvider.setElevation(route, () => {
+                let routeIndices = [];
+                routeIndices.push(0);
+                if (markers.length == 3) {
+                    let minIndex = -1;
+                    let minDist = 0;
+                    for (let index = 0; index < route.length; index++) {
+                        let dist = markers[1].getLatLng().distanceTo(route[index]);
+                        if (minIndex == -1 || dist < minDist) {
+                            minIndex = index;
+                            minDist = dist;
+                        }
+                    }
+                    routeIndices.push(minIndex);
                 }
-            }
-            routeIndices.push(minIndex);
-        }
-        routeIndices.push(route.length - 1);
+                routeIndices.push(route.length - 1);
 
-        for (var i = markers.length - 2; i >= 0; i--) {
-            this._data.splice(
-                markers[i]._latlngIndex,
-                markers[i + 1]._latlngIndex - markers[i]._latlngIndex + 1,
-                ...route.slice(routeIndices[i], routeIndices[i + 1] + 1)
-            );
-            this._data[markers[i]._latlngIndex]._anchor = true;
-            this._data[markers[i]._latlngIndex + routeIndices[i + 1] - routeIndices[i]]._anchor = true;
-        }
+                for (let i = markers.length - 2; i >= 0; i--) {
+                    this._data.splice(
+                        markers[i]._latlngIndex,
+                        markers[i + 1]._latlngIndex - markers[i]._latlngIndex + 1,
+                        ...route.slice(routeIndices[i], routeIndices[i + 1] + 1)
+                    );
+                    this._data[markers[i]._latlngIndex]._anchor = true;
+                    this._data[markers[i]._latlngIndex + routeIndices[i + 1] - routeIndices[i]]._anchor = true;
+                }
 
-        this._updateData();
+                this._updateData();
+            });
+        });
     },
 
     clear: function () {
@@ -339,6 +342,10 @@ L.Control.RouteEditor = L.Control.extend({
         if (this._markers) {
             this._markers.forEach(marker => marker.remove());
             this._markers = [];
+        }
+
+        if (this.options.onUpdate) {
+            this.options.onUpdate(this._data);
         }
     },
 });
