@@ -1,7 +1,7 @@
 L.RouteProvider.BRouter = L.Class.extend({
     options: {
-        domain: 'routing.gpx.studio',
-        profile: 'Trekking-dry',
+        domain: 'DOMAIN_NAME',
+        profile: 'ROUTING_PROFILE',
     },
 
     initialize: function (options) {

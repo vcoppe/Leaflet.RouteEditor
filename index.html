@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="src/L.Control.RouteEditor.css"/>
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 <script src="src/L.RouteProvider.js"></script>
+<script src="src/L.RouteProvider.StraightLine.js"></script>
 <script src="src/L.ElevationProvider.js"></script>
 <script src="src/L.Control.RouteEditor.js"></script>
 </head>
@@ -19,18 +20,13 @@
     }
 </style>
 <script type="text/javascript">
-    let map = L.map('map').setView([46.434, 13.748], 15);
+    let map = L.map('map').setView([50.85, 4.34], 12);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
-    let routeEditor = L.control.routeEditor({
-
-    }).addTo(map);
-
-    routeEditor.loadRouteFromURL('https://raw.githubusercontent.com/tkrajina/gpxpy/dev/test_files/Mojstrovka.gpx');
-
+    L.control.routeEditor().addTo(map);
 </script>
 </body>

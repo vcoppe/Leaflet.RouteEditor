@@ -9,7 +9,7 @@ L.Control.RouteEditor = L.Control.extend({
             iconUrl: 'img/marker.svg',
             iconSize: [12, 12],
         },
-        routeProvider: L.routeProvider(),
+        routeProvider: L.routeProvider.straightLine(),
         elevationProvider: L.elevationProvider(),
         onUpdate: function () {},
     },
