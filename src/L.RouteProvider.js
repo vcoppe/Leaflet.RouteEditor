@@ -8,7 +8,24 @@ L.RouteProvider = L.Class.extend({
     },
 
     getRoute: function (waypoints, callback) {
-        callback(waypoints);
+        let latlngs = [];
+
+        for (let k = 0; k < waypoints.length - 1; k++) {
+            let start = L.Projection.SphericalMercator.project(waypoints[k]);
+            let end = L.Projection.SphericalMercator.project(waypoints[k + 1]);
+            let delta = end.subtract(start).divideBy(2);
+
+            let middle = L.Projection.SphericalMercator.unproject(start.add(delta));
+
+            latlngs.push(waypoints[k]);
+            latlngs.push(middle);
+        }
+
+        if (waypoints.length > 0) {
+            latlngs.push(waypoints[waypoints.length - 1]);
+        }
+
+        callback(latlngs);
     },
 
     _getRoute: function(waypoints, callback) {

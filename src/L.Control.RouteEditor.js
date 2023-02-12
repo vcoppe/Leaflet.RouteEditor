@@ -41,7 +41,10 @@ L.Control.RouteEditor = L.Control.extend({
 
             L.DomEvent.on(this._loadButton, 'click', e => this._fileInput.click());
             L.DomEvent.on(this._loadButton, 'click', L.DomEvent.stopPropagation);
-            L.DomEvent.on(this._fileInput, 'input', e => this._loadRouteFromFile(this._fileInput.files[0]), this);
+            L.DomEvent.on(this._fileInput, 'input', e => {
+                this._loadRouteFromFile(this._fileInput.files[0]);
+                this._fileInput.value = '';
+            }, this);
         }
 
         if (this.options.download) {
@@ -104,18 +107,12 @@ L.Control.RouteEditor = L.Control.extend({
     _readGpx: function (data) {
         const trkptRegex = /<trkpt\s+lat="(?<lat>-?\d+\.\d+)"\s+lon="(?<lng>-?\d+\.\d+)">[\s\S]*?(<ele>(?<alt>-?\d+\.?\d*)<\/ele>)?[\s\S]*?<\/trkpt>/g;
         let matches = [...data.matchAll(trkptRegex)];
-        this._data = matches.map(match => {
-            let latlng = L.latLng(Number(match.groups.lat), Number(match.groups.lng), Number(match.groups.alt));
-            latlng._anchor = true;
-            return latlng;
-        });
+        this._data = matches.map(match => L.latLng(Number(match.groups.lat), Number(match.groups.lng), Number(match.groups.alt)));
         this._updateData();
         this._map.fitBounds(this._polyline.getBounds());
     },
 
     _addLatLng: function (latlng) {
-        latlng._anchor = true;
-
         if (!this._data) {
             this._data = [latlng];
         } else {
@@ -159,7 +156,7 @@ L.Control.RouteEditor = L.Control.extend({
     _updateHoverMarker: function (e) {
         if (this._polyline) {
             let point = this._polyline.closestLayerPoint(e.layerPoint);
-            if (point.distance < 3) {
+            if (point && point.distance < 3) {
                 if (this._tmpMarker) {
                     this._tmpMarker.setLatLng(e.latlng);
                 } else {
@@ -222,30 +219,31 @@ L.Control.RouteEditor = L.Control.extend({
 
     _updateMarkers: function () {
         let bounds = this._map.getBounds();
-        let threshold = Math.abs(bounds.getNorthWest().lat - bounds.getSouthEast().lat) / 20;
-
-        let data = this._data.map((latlng, index) => {
-            let pt = L.point(latlng.lat, latlng.lng);
-            pt._latlngIndex = index;
-            return pt;
-        });
+        let southWest = bounds.getSouthWest();
+        let northEast = bounds.getNorthEast();
+        let threshold = Math.pow(Math.min(northEast.lat - southWest.lat, northEast.lng - southWest.lng) / 20, 2);
 
         let simplified = [];
-        let lastAnchor = -1;
+        let start = -1;
         for (let index = 0; index < this._data.length; index++) {
-            if (this._data[index]._anchor) {
-                if (lastAnchor == -1) {
-                    lastAnchor = index;
+            if (this._data[index]._routing) {
+                if (start != -1) {
+                    let points = this._data.slice(start, index);
+                    let simplifiedPoints = simplify(points, threshold);
+                    simplified.push(...simplifiedPoints);
+                    start = -1;
                 }
-            } else if (lastAnchor != -1) {
-                let points = data.slice(lastAnchor, index);
-                simplified.push(...L.LineUtil.simplify(points, threshold));
-                lastAnchor = -1;
-            }
+            } else {
+                if (start == -1) {
+                    start = index;
+                }
+            } 
         }
-        if (lastAnchor != - 1) {
-            let points = data.slice(lastAnchor);
-            simplified.push(...L.LineUtil.simplify(points, threshold));
+
+        if (start != - 1) {
+            let points = this._data.slice(start);
+            let simplifiedPoints = simplify(points, threshold);
+            simplified.push(...simplifiedPoints);
         }
 
         if (this._markers) {
@@ -254,10 +252,10 @@ L.Control.RouteEditor = L.Control.extend({
             });
         }
 
-        let newMarkers = simplified.map((pt, index) => {
-            let marker = this._createMarker(this._data[pt._latlngIndex]);
+        let newMarkers = simplified.map((latlng, index) => {
+            let marker = this._createMarker(latlng);
             marker._markerIndex = index;
-            marker._latlngIndex = pt._latlngIndex;
+            marker._latlngIndex = latlng._latlngIndex;
             return marker;
         });
 
@@ -312,12 +310,14 @@ L.Control.RouteEditor = L.Control.extend({
 
         this.options.routeProvider.getRoute(waypoints, route => {
             this.options.elevationProvider.setElevation(route, () => {
+                route.forEach(latlng => latlng._routing = true);
+
                 let routeIndices = [];
                 routeIndices.push(0);
                 if (markers.length == 3) {
                     let minIndex = -1;
                     let minDist = 0;
-                    for (let index = 0; index < route.length; index++) {
+                    for (let index = 1; index < route.length - 1; index++) {
                         let dist = markers[1].getLatLng().distanceTo(route[index]);
                         if (minIndex == -1 || dist < minDist) {
                             minIndex = index;
@@ -329,13 +329,16 @@ L.Control.RouteEditor = L.Control.extend({
                 routeIndices.push(route.length - 1);
 
                 for (let i = markers.length - 2; i >= 0; i--) {
+                    let segment = route.slice(routeIndices[i], routeIndices[i + 1] + 1);
+                    if (segment.length > 0) {
+                        segment[0]._routing = false;
+                        segment[segment.length - 1]._routing = false;
+                    }
                     this._data.splice(
                         markers[i]._latlngIndex,
                         markers[i + 1]._latlngIndex - markers[i]._latlngIndex + 1,
-                        ...route.slice(routeIndices[i], routeIndices[i + 1] + 1)
+                        ...segment
                     );
-                    this._data[markers[i]._latlngIndex]._anchor = true;
-                    this._data[markers[i]._latlngIndex + routeIndices[i + 1] - routeIndices[i]]._anchor = true;
                 }
 
                 this._updateData();
