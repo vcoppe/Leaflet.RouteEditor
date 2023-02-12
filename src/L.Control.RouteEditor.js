@@ -37,6 +37,7 @@ L.Control.RouteEditor = L.Control.extend({
             this._fileInput = L.DomUtil.create('input', 'leaflet-control-route-editor-file-input');
             this._fileInput.type = 'file';
             this._fileInput.accept = '.gpx';
+            this._fileInput.style.display = 'none';
 
             L.DomEvent.on(this._loadButton, 'click', e => this._fileInput.click());
             L.DomEvent.on(this._loadButton, 'click', L.DomEvent.stopPropagation);
