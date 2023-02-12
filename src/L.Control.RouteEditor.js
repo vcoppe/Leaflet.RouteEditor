@@ -1,7 +1,10 @@
 L.Control.RouteEditor = L.Control.extend({
     options: {
         load: 'load',
+        download: 'download',
         clear: 'clear',
+        filename: 'file',
+        format: 'gpx',
         polylineOptions: {
             weight: 5,
         },
@@ -25,13 +28,13 @@ L.Control.RouteEditor = L.Control.extend({
         L.DomEvent.on(this._map, 'zoomend', this._updateMarkers, this);
         L.DomEvent.on(this._map, 'mousemove', this._updateHoverMarker, this);
 
-        this._container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-gpx-editor');
+        this._container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-route-editor');
 
         if (this.options.load) {
-            this._loadButton = L.DomUtil.create('a', 'leaflet-control-gpx-editor-load', this._container);
+            this._loadButton = L.DomUtil.create('a', 'leaflet-control-route-editor-load', this._container);
             this._loadButton.innerHTML = this.options.load;
 
-            this._fileInput = L.DomUtil.create('input', 'leaflet-control-gpx-editor-file-input');
+            this._fileInput = L.DomUtil.create('input', 'leaflet-control-route-editor-file-input');
             this._fileInput.type = 'file';
             this._fileInput.accept = '.gpx';
 
@@ -40,8 +43,16 @@ L.Control.RouteEditor = L.Control.extend({
             L.DomEvent.on(this._fileInput, 'input', e => this._loadRouteFromFile(this._fileInput.files[0]), this);
         }
 
+        if (this.options.download) {
+            this._downloadButton = L.DomUtil.create('a', 'leaflet-control-route-editor-download', this._container);
+            this._downloadButton.innerHTML = this.options.download;
+
+            L.DomEvent.on(this._downloadButton, 'click', e => this.downloadRouteToFile());
+            L.DomEvent.on(this._downloadButton, 'click', L.DomEvent.stopPropagation);
+        }
+
         if (this.options.clear) {
-            this._clearButton = L.DomUtil.create('a', 'leaflet-control-gpx-editor-clear', this._container);
+            this._clearButton = L.DomUtil.create('a', 'leaflet-control-route-editor-clear', this._container);
             this._clearButton.innerHTML = this.options.clear;
 
             L.DomEvent.on(this._clearButton, 'click', e => this.clear());
@@ -59,8 +70,8 @@ L.Control.RouteEditor = L.Control.extend({
     _loadRouteFromFile: function (file) {
         let reader = new FileReader();
         L.DomEvent.on(reader, 'load', e => {
-            let extension = file.name.split('.').pop().toLowerCase();
-            switch (extension) {
+            let format = file.name.split('.').pop().toLowerCase();
+            switch (format) {
                 case 'gpx':
                     this._readGpx(reader.result)
                     break;
@@ -75,8 +86,8 @@ L.Control.RouteEditor = L.Control.extend({
         let request = new XMLHttpRequest();
         L.DomEvent.on(request, 'readystatechange', e => {
             if (request.readyState == 4 && request.status == 200) {
-                let extension = url.split('.').pop().toLowerCase();
-                switch (extension) {
+                let format = url.split('.').pop().toLowerCase();
+                switch (format) {
                     case 'gpx':
                         this._readGpx(request.responseText)
                         break;
@@ -329,6 +340,52 @@ L.Control.RouteEditor = L.Control.extend({
                 this._updateData();
             });
         });
+    },
+
+    downloadRouteToFile: function () {
+        let data = null;
+        switch (this.options.format) {
+            case 'gpx':
+                data = this.getRouteAsGpx();
+                break;
+            default:
+                console.log("file format not supported");
+        }
+
+        if (data != null) {
+            let element = L.DomUtil.create('a');
+            element.setAttribute('href', 'data:text/octet-stream;charset=utf-8,' + encodeURIComponent(data));
+            element.setAttribute('download', `${this.options.filename}.${this.options.format}`);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+    },
+
+    getRouteAsGpx: function () {
+        let output = `<?xml version="1.0" encoding="UTF-8"?>\n`
+        + `<gpx xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1">\n`
+        + `<metadata>\n`
+        + `    <name>${this.options.filename}</name>\n`
+        + `</metadata>\n`
+        + `<trk>\n`
+        + `    <name>${this.options.filename}</name>\n`
+        + `    <trkseg>\n`;
+
+        for (let latlng of this._data) {
+            output += `    <trkpt lat="${latlng.lat}" lon="${latlng.lng}">`;
+            if (latlng.alt != null) {
+                output += `<ele>${latlng.alt}</ele>`;
+            }
+            output += `</trkpt>\n`;
+        }
+
+        output += `    </trkseg>\n`
+        + `</trk>\n`
+        + `</gpx>\n`;
+
+        return output;
     },
 
     clear: function () {
