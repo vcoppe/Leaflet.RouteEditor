@@ -226,11 +226,16 @@ L.Control.RouteEditor = L.Control.extend({
         let simplified = [];
         let start = -1;
         for (let index = 0; index < this._data.length; index++) {
+            this._data[index]._latlngIndex = index;
             if (this._data[index]._routing) {
                 if (start != -1) {
                     let points = this._data.slice(start, index);
-                    let simplifiedPoints = simplify(points, threshold);
-                    simplified.push(...simplifiedPoints);
+                    if (points.length <= 2) {
+                        simplified.push(...points);
+                    } else {
+                        let simplifiedPoints = simplify(points, threshold);
+                        simplified.push(...simplifiedPoints);
+                    }
                     start = -1;
                 }
             } else {
@@ -242,8 +247,12 @@ L.Control.RouteEditor = L.Control.extend({
 
         if (start != - 1) {
             let points = this._data.slice(start);
-            let simplifiedPoints = simplify(points, threshold);
-            simplified.push(...simplifiedPoints);
+            if (points.length <= 2) {
+                simplified.push(...points);
+            } else {
+                let simplifiedPoints = simplify(points, threshold);
+                simplified.push(...simplifiedPoints);
+            }
         }
 
         if (this._markers) {
