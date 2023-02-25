@@ -292,7 +292,10 @@ L.Control.RouteEditor = L.Control.extend({
         marker.addTo(this._map);
 
         L.DomEvent.on(marker, 'mouseup', this._onMarkerMoved, this);
+        L.DomEvent.on(marker, 'click', this._onMarkerClicked, this);
         L.DomEvent.on(marker, 'click', L.DomEvent.stopPropagation);
+        L.DomEvent.on(marker, 'contextmenu', this._onMarkerClicked, this);
+        L.DomEvent.on(marker, 'contextmenu', L.DomEvent.stopPropagation);
 
         latlng._marker = marker;
 
@@ -314,6 +317,30 @@ L.Control.RouteEditor = L.Control.extend({
         } else if (marker._markerIndex < this._markers.length - 1) {
             let nextMarker = this._markers[marker._markerIndex + 1];
             this._updateRouteBetweenMarkers([marker, nextMarker]);
+        }
+    },
+
+    _onMarkerClicked: function (e) {
+        if (e.originalEvent.ctrlKey || e.originalEvent.metaKey) {
+            this._deleteMarker(e.target);
+        }
+    },
+
+    _deleteMarker: function (marker) {
+        if (marker._markerIndex == 0) {
+            if (this._markers.length == 1) {
+                this.clear();
+            } else {
+                this._data.splice(0, this._markers[1]._latlngIndex);
+                this._updateData();
+            }
+        } else if (marker._markerIndex == this._markers.length - 1) {
+            this._data.splice(this._markers[this._markers.length - 2]._latlngIndex + 1);
+            this._updateData();
+        } else {
+            let previousMarker = this._markers[marker._markerIndex - 1];
+            let nextMarker = this._markers[marker._markerIndex + 1];
+            this._updateRouteBetweenMarkers([previousMarker, nextMarker]);
         }
     },
 
