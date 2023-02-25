@@ -301,6 +301,9 @@ L.Control.RouteEditor = L.Control.extend({
 
     _onMarkerMoved: function (e) {
         let marker = e.target;
+        if (marker.getLatLng().equals(this._data[marker._latlngIndex])) {
+            return;
+        }
         if (marker._markerIndex > 0 && marker._markerIndex < this._markers.length - 1) {
             let previousMarker = this._markers[marker._markerIndex - 1];
             let nextMarker = this._markers[marker._markerIndex + 1];
