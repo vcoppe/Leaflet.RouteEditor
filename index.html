@@ -6,6 +6,7 @@
 <script src="src/simplify.js"></script>
 <script src="src/L.RouteProvider.js"></script>
 <script src="src/L.RouteProvider.StraightLine.js"></script>
+<script src="src/L.RouteProvider.BRouter.js"></script>
 <script src="src/L.ElevationProvider.js"></script>
 <script src="src/L.Control.RouteEditor.js"></script>
 </head>
@@ -27,6 +28,14 @@
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
-    L.control.routeEditor().addTo(map);
+    L.control.routeEditor({
+        load: '<i class="fa-solid fa-upload"></i>',
+        download: '<i class="fa-solid fa-download"></i>',
+        clear: '<i class="fa-solid fa-trash"></i>',
+        routeProvider: L.routeProvider.bRouter({
+            domain: 'routing.gpx.studio',
+            profile: 'all',
+        })
+    }).addTo(map);
 </script>
 </body>

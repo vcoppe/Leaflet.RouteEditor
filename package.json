@@ -1,0 +1,32 @@
+{
+  "name": "leaflet-route-editor",
+  "version": "0.0.0",
+  "description": "Minimalist Leaflet plugin to edit GPS traces.",
+  "keywords": [
+    "leaflet",
+    "map",
+    "route",
+    "editor",
+    "gps"
+  ],
+  "author": "Vianney Coppé",
+  "homepage": "https://github.com/vcoppe/Leaflet.RouteEditor#readme",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vcoppe/Leaflet.RouteEditor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vcoppe/Leaflet.RouteEditor/issues"
+  },
+  "main": "dist/L.Control.RouteEditor.js",
+  "peerDependencies": {
+    "leaflet": "^1.9.3"
+  },
+  "devDependencies": {
+    "uglify-js": "3.17.4"
+  },
+  "scripts" : {
+    "prepublishOnly" : "uglifyjs src/* -o dist/L.Control.RouteEditor.min.js"
+  }
+}
