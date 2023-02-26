@@ -61,6 +61,16 @@ Option | Type | Default | Description
 `domain` | `String` | no default value | The domain name of the BRouter server used.
 `profile` | `String` | no default value | The routing profile used.
 
+### L.RouteProvider.GraphHopper
+
+Route provider for a [GraphHopper](https://www.graphhopper.com/) instance or [Routing API](https://docs.graphhopper.com/#tag/Routing-API).
+
+Option | Type | Default | Description
+--- | --- | --- | ---
+`domain` | `String` | `'graphhopper.com'` | The domain name of the BRouter server used.
+`profile` | `String` | `'bike'` | The routing profile used.
+`token` | `String` \| `'boolean'` | `false` | Your GraphHopper access token or `false` if you host your own instance.
+
 ### L.RouteProvider.Mapbox
 
 Route provider for the [Mapbox](https://www.mapbox.com/) [Directions API](https://docs.mapbox.com/api/navigation/directions/).
