@@ -51,7 +51,7 @@ L.Control.RouteEditor = L.Control.extend({
             this._downloadButton = L.DomUtil.create('a', 'leaflet-control-route-editor-download', this._container);
             this._downloadButton.innerHTML = this.options.download;
 
-            L.DomEvent.on(this._downloadButton, 'click', e => this.downloadRouteToFile());
+            L.DomEvent.on(this._downloadButton, 'click', e => this._downloadRouteToFile());
             L.DomEvent.on(this._downloadButton, 'click', L.DomEvent.stopPropagation);
         }
 
@@ -73,16 +73,7 @@ L.Control.RouteEditor = L.Control.extend({
 
     _loadRouteFromFile: function (file) {
         let reader = new FileReader();
-        L.DomEvent.on(reader, 'load', e => {
-            let format = file.name.split('.').pop().toLowerCase();
-            switch (format) {
-                case 'gpx':
-                    this._readGpx(reader.result)
-                    break;
-                default:
-                    console.log("file format not supported");
-            }
-        });
+        L.DomEvent.on(reader, 'load', e => this._loadRouteFromData(file.name, reader.result), this);
         reader.readAsText(file);
     },
 
@@ -90,26 +81,30 @@ L.Control.RouteEditor = L.Control.extend({
         let request = new XMLHttpRequest();
         L.DomEvent.on(request, 'readystatechange', e => {
             if (request.readyState == 4 && request.status == 200) {
-                let format = url.split('.').pop().toLowerCase();
-                switch (format) {
-                    case 'gpx':
-                        this._readGpx(request.responseText)
-                        break;
-                    default:
-                        console.log("file format not supported");
-                }
+                this._loadRouteFromData(url, request.responseText);
             }
         }, this);
         request.open('GET', decodeURIComponent(url));
         request.send();
     },
 
+    _loadRouteFromData: function(path, data) {
+        let format = path.split('.').pop().toLowerCase();
+        switch (format) {
+            case 'gpx':
+                this._data = this._readGpx(data);
+                break;
+            default:
+                console.log("file format not supported");
+        }
+        this._updateData();
+        this._map.fitBounds(this._polyline.getBounds());
+    },
+
     _readGpx: function (data) {
         const trkptRegex = /<trkpt\s+lat="(?<lat>-?\d+\.\d+)"\s+lon="(?<lng>-?\d+\.\d+)">[\s\S]*?(<ele>(?<alt>-?\d+\.?\d*)<\/ele>)?[\s\S]*?<\/trkpt>/g;
         let matches = [...data.matchAll(trkptRegex)];
-        this._data = matches.map(match => L.latLng(Number(match.groups.lat), Number(match.groups.lng), Number(match.groups.alt)));
-        this._updateData();
-        this._map.fitBounds(this._polyline.getBounds());
+        return matches.map(match => L.latLng(Number(match.groups.lat), Number(match.groups.lng), Number(match.groups.alt)));
     },
 
     _addLatLng: function (latlng) {
@@ -385,7 +380,7 @@ L.Control.RouteEditor = L.Control.extend({
         });
     },
 
-    downloadRouteToFile: function () {
+    _downloadRouteToFile: function () {
         let data = null;
         switch (this.options.format) {
             case 'gpx':

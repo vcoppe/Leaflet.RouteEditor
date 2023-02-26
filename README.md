@@ -27,6 +27,8 @@ See the [Reference](#reference) below to learn how to customize the plugin to yo
 
 The route editor in itself, adding an instance of it to the map enables plotting a route, and loading and downloading GPS routes.
 
+#### Options
+
 Option | Type | Default | Description
 --- | --- | --- | ---
 `position` | `String` | `'topright'` | *Inherited from L.Control.* The position of the control (one of the map corners). Possible values are `'topleft'`, `'topright'`, `'bottomleft'` or `'bottomright`.'
@@ -41,6 +43,16 @@ Option | Type | Default | Description
 `elevationProvider` | instance of `L.ElevationProvider` | `L.elevationProvider()` | Specify the elevation provider to use.
 `onUpdate` | `function` | `function () {}` | Callback function called after each route update.
 
+#### Methods
+
+Method | Returns | Description
+--- | --- | ---
+`loadRouteFromURL(<String> url)` | no return value | Tries to load a GPS trace on the map from a file located at the given URL.
+`getRouteAsGpx()` | `String` | Converts the current GPS trace to GPX data.
+`clear()` | no return value | Removes the current GPS trace.
+
+See also the methods inherited from [Leaflet Control](https://leafletjs.com/reference.html#control).
+
 ### L.RouteProvider
 
 The simplest route provider, connecting the anchor points in straight line.
@@ -50,6 +62,8 @@ Extend this class to create a new route provider by providing your own implement
 
 Another simple route provider connecting the anchor points in straight line but adding intermediate GPS points between the anchor points.
 
+#### Options
+
 Option | Type | Default | Description
 --- | --- | --- | ---
 `step` | `Number` | `10` | A parameter that controls the distance between the GPS points created on straight lines.
@@ -57,6 +71,8 @@ Option | Type | Default | Description
 ### L.RouteProvider.BRouter
 
 Route provider for a [BRouter](https://github.com/abrensch/brouter) instance.
+
+#### Options
 
 Option | Type | Default | Description
 --- | --- | --- | ---
@@ -66,6 +82,8 @@ Option | Type | Default | Description
 ### L.RouteProvider.GraphHopper
 
 Route provider for a [GraphHopper](https://www.graphhopper.com/) instance or [Routing API](https://docs.graphhopper.com/#tag/Routing-API).
+
+#### Options
 
 Option | Type | Default | Description
 --- | --- | --- | ---
@@ -77,6 +95,8 @@ Option | Type | Default | Description
 
 Route provider for the [Mapbox](https://www.mapbox.com/) [Directions API](https://docs.mapbox.com/api/navigation/directions/).
 
+#### Options
+
 Option | Type | Default | Description
 --- | --- | --- | ---
 `profile` | `String` | `'cycling'` | The routing profile used.
@@ -85,6 +105,8 @@ Option | Type | Default | Description
 ### L.RouteProvider.OSRM
 
 Route provider for a [OSRM](https://project-osrm.org/) instance.
+
+#### Options
 
 Option | Type | Default | Description
 --- | --- | --- | ---
