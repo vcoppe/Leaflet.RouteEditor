@@ -70,6 +70,15 @@ Option | Type | Default | Description
 `profile` | `String` | `'cycling'` | The routing profile used.
 `token` | `String` | no default value | Your Mapbox access token.
 
+### L.RouteProvider.OSRM
+
+Route provider for a [OSRM](https://project-osrm.org/) instance.
+
+Option | Type | Default | Description
+--- | --- | --- | ---
+`domain` | `String` | no default value | The domain name of the OSRM server used.
+`profile` | `String` | `'cycling'` | The routing profile used.
+
 ### L.ElevationProvider
 
 Extend this class to create a new elevation provider by providing your own implementation of `setElevation`.
