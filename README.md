@@ -1,6 +1,8 @@
 # Leaflet.RouteEditor
 
-Minimalist Leaflet plugin to edit GPS traces.
+Minimalist Leaflet plugin to edit GPS traces:
+- load and download GPS traces
+- add, drag and remove (Ctrl/Cmd+click) anchor points to edit the GPS trace
 
 Check the [demo](https://vcoppe.github.io/Leaflet.RouteEditor/)!
 
