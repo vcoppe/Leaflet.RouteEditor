@@ -1,6 +1,6 @@
 {
   "name": "leaflet-route-editor",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Minimalist Leaflet plugin to edit GPS traces.",
   "keywords": [
     "leaflet",

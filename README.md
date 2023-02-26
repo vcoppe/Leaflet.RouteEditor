@@ -15,7 +15,7 @@ Developed with Leaflet 1.9.3 but so simple it probably works with other versions
 Simply add the single file from the `dist` folder to your project like below:
 
 ```html
-<script src="https://unpkg.com/leaflet-route-editor@0.0.0/dist/L.Control.RouteEditor.min.js"></script>
+<script src="https://unpkg.com/leaflet-route-editor@0.0.1/dist/L.Control.RouteEditor.min.js"></script>
 ```
 
 Then, add an instance of `L.Control.RouteEditor` to the map: `L.control.routeEditor().addTo(map)`.
