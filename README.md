@@ -61,6 +61,15 @@ Option | Type | Default | Description
 `domain` | `String` | no default value | The domain name of the BRouter server used.
 `profile` | `String` | no default value | The routing profile used.
 
+### L.RouteProvider.Mapbox
+
+Route provider for the [Mapbox](https://www.mapbox.com/) [Directions API](https://docs.mapbox.com/api/navigation/directions/).
+
+Option | Type | Default | Description
+--- | --- | --- | ---
+`profile` | `String` | `'cycling'` | The routing profile used.
+`token` | `String` | no default value | Your Mapbox access token.
+
 ### L.ElevationProvider
 
 Extend this class to create a new elevation provider by providing your own implementation of `setElevation`.
